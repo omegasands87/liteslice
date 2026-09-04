@@ -187,9 +187,9 @@ Pool mendukung multiple credentials, priority, weight, round robin, health-based
 
 BYOK = Bring Your Own Key.
 
-Pro: 1 BYOK API.
+Creator: BYOK setelah quota Admin AI Pool habis, sehingga member dapat melanjutkan analysis menggunakan API miliknya sendiri.
 
-Power: BYOK pool, multiple providers, custom API, custom Base URL, advanced routing.
+BYOK dapat menggunakan credential provider yang didukung platform. Detail jumlah credential/provider yang dapat disimpan harus mengikuti entitlement implementasi dan tidak boleh diasumsikan lebih luas dari keputusan ini.
 
 Credential wajib encrypted at rest, masked, tidak masuk log, dapat di-revoke, dan health checked.
 
@@ -352,6 +352,36 @@ Format:
 ```
 
 Jangan menghapus keputusan lama tanpa alasan dan persetujuan.
+
+## Decision 030 — Current Membership Plans Revision
+
+**Decision:** Struktur membership terbaru menggantikan struktur Starter / Pro / Power sebelumnya.
+
+**Current plans:**
+
+### Starter — Rp30.000/bulan
+- Admin AI Pool
+- Quota 5 analysis/bulan
+- Fitur analisa terbatas
+- Tidak ada BYOK entitlement
+
+### Growth — Rp90.000/bulan
+- Admin AI Pool
+- Quota 20 analysis/bulan
+- Fitur analisa FULL
+- Tidak ada BYOK entitlement yang ditetapkan oleh keputusan ini
+
+### Creator — Rp270.000/bulan
+- Admin AI Pool
+- Quota 75 analysis/bulan
+- Fitur analisa FULL
+- BYOK tersedia setelah quota Admin AI Pool habis, sehingga member dapat melanjutkan menggunakan API miliknya sendiri
+
+**Supersedes:** Decision 002, Decision 003, Decision 004, dan bagian plan lama yang bertentangan di dokumen project.
+
+**Impact:** membership pricing, entitlement, analysis quota, AI Pool policy, BYOK availability, payment, onboarding, dan UI membership.
+
+**Important:** Keputusan ini tidak mengubah keputusan No Public Free Plan atau aturan complimentary member kecuali dinyatakan secara eksplisit dalam keputusan baru.
 
 # Current Status
 
