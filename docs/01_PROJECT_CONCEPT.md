@@ -1,5 +1,7 @@
 # PROJECT CONCEPT — AI CONTENT STRATEGY & PROFESSIONAL PRODUCTION PLATFORM
 
+> **CURRENT MEMBERSHIP AUTHORITY:** The current public membership plans are defined in `docs/06_CURRENT_MEMBERSHIP_PLANS.md` and Decision 030 in `docs/05_PROJECT_DECISIONS.md`. Any older Starter / Pro / Power pricing or entitlement examples in this document are historical baseline only and must not be implemented as current requirements.
+
 ## 1. PROJECT OVERVIEW
 
 Project ini adalah platform AI berbayar yang mengubah **ide/topik mentah** menjadi **rencana konten profesional yang siap diproduksi** untuk konten gambar dan video.
@@ -108,40 +110,53 @@ Platform berada terutama pada tahap **analisa sampai production planning**.
 
 Tidak ada public Free Plan.
 
-## STARTER — Rp10.000
+> **Current membership plans:** lihat `docs/06_CURRENT_MEMBERSHIP_PLANS.md` untuk pricing, quota, feature access, dan BYOK entitlement yang berlaku.
+
+## CURRENT PLANS
 
 ```text
 STARTER
-│
+├── Rp30.000 / month
 ├── Admin AI Pool
-├── 10 analysis / month
-└── Limited models
+├── 5 analysis / month
+└── Limited analysis features
+
+GROWTH
+├── Rp90.000 / month
+├── Admin AI Pool
+├── 20 analysis / month
+└── Full analysis features
+
+CREATOR
+├── Rp270.000 / month
+├── Admin AI Pool
+├── 75 analysis / month
+├── Full analysis features
+└── BYOK after Admin Pool quota is exhausted
 ```
 
-## PRO — Rp75.000
+### Starter
+- Rp30.000/bulan;
+- Admin AI Pool;
+- quota 5 analysis/bulan;
+- fitur analisa terbatas;
+- tidak memiliki entitlement BYOK berdasarkan keputusan membership saat ini.
 
-```text
-PRO
-│
-├── Larger Admin AI Pool
-├── BYOK 1 API
-├── More analysis
-├── Better models
-└── Priority processing
-```
+### Growth
+- Rp90.000/bulan;
+- Admin AI Pool;
+- quota 20 analysis/bulan;
+- fitur analisa FULL;
+- tidak memiliki entitlement BYOK yang ditetapkan oleh keputusan membership saat ini.
 
-## POWER — Rp150.000
+### Creator
+- Rp270.000/bulan;
+- Admin AI Pool;
+- quota 75 analysis/bulan;
+- fitur analisa FULL;
+- setelah quota Admin AI Pool habis, member dapat melanjutkan analysis menggunakan API miliknya sendiri melalui BYOK.
 
-```text
-POWER
-│
-├── Larger Admin AI Pool
-├── BYOK pool
-├── Multiple providers
-├── Custom API
-├── Custom Base URL
-└── Advanced routing
-```
+**Feature gating detail:** pemetaan fitur individual ke Limited atau Full belum ditentukan. Jangan mengasumsikan detail gating sebelum ada keputusan product tambahan.
 
 ---
 
@@ -1126,18 +1141,15 @@ Google
 
 ## BYOK
 
-Pro:
+**Current public-plan entitlement:**
 
 ```text
-1 API credential
+Starter → No BYOK entitlement
+Growth  → No BYOK entitlement
+Creator → BYOK after Admin AI Pool quota is exhausted
 ```
 
-Power:
-
-```text
-Multiple BYOK credentials
-Multiple providers
-```
+BYOK tetap dapat mendukung credential provider yang sesuai dengan policy platform. Detail jumlah credential/provider yang tersedia untuk Creator belum ditetapkan oleh keputusan membership baru dan tidak boleh diasumsikan.
 
 ## Custom Provider
 
@@ -1617,21 +1629,20 @@ Project V1 dianggap selesai jika:
 29. Admin dapat memasang multiple API credentials.
 30. Admin dapat membuat API pool.
 31. Admin dapat mengatur quota pool.
-32. Pro dapat menggunakan 1 BYOK.
-33. Power dapat menggunakan BYOK pool.
-34. Multiple providers didukung.
-35. Custom provider didukung.
-36. Custom Base URL didukung.
-37. Routing dan failover tersedia.
-38. Usage dan cost dapat dicatat.
-39. Payment provider dapat dikonfigurasi.
-40. Manual transfer tersedia.
-41. Transaction dapat dilacak.
-42. Credential aman.
-43. Webhook diverifikasi.
-44. Custom URL memiliki SSRF protection.
-45. Analysis Engine tidak terikat pada satu provider.
-46. Tidak ada fitur V1 yang tidak memiliki fungsi bisnis jelas.
+32. Creator dapat menggunakan BYOK setelah quota Admin AI Pool habis.
+33. Multiple providers didukung.
+34. Custom provider didukung.
+35. Custom Base URL didukung.
+36. Routing dan failover tersedia.
+37. Usage dan cost dapat dicatat.
+38. Payment provider dapat dikonfigurasi.
+39. Manual transfer tersedia.
+40. Transaction dapat dilacak.
+41. Credential aman.
+42. Webhook diverifikasi.
+43. Custom URL memiliki SSRF protection.
+44. Analysis Engine tidak terikat pada satu provider.
+45. Tidak ada fitur V1 yang tidak memiliki fungsi bisnis jelas.
 
 ---
 
