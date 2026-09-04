@@ -1,5 +1,7 @@
 # PROJECT DEVELOPMENT WORKFLOW & AI BUILDER OPERATING RULES
 
+> **CURRENT MEMBERSHIP AUTHORITY:** Current public plans are defined by `docs/06_CURRENT_MEMBERSHIP_PLANS.md` and Decision 030 in `docs/05_PROJECT_DECISIONS.md`. Older Starter / Pro / Power pricing examples below are historical examples only and must not be implemented as current requirements.
+
 ## Purpose
 
 Dokumen ini adalah operating specification untuk AI Builder/Coding Agent yang mengerjakan project. Simpan di repository bersama dokumen spesifikasi produk.
@@ -21,12 +23,11 @@ Recommended documentation:
 /docs/
 ├── 01_PROJECT_CONCEPT.md
 ├── 02_AI_CONTENT_INTELLIGENCE_SPEC.md
-├── 03_AI_PROVIDER_BYOK_POOL_SPEC.md
-├── 04_PRODUCT_BUSINESS_SPEC.md
-└── 05_PROJECT_DEVELOPMENT_WORKFLOW.md
+├── 03_AI_PROVIDER_BYOK_API_POOL.md
+├── 04_PROJECT_DEVELOPMENT_WORKFLOW.md
+├── 05_PROJECT_DECISIONS.md
+└── 06_CURRENT_MEMBERSHIP_PLANS.md
 ```
-
-Jika nama file berbeda, prinsipnya sama.
 
 Priority:
 
@@ -181,15 +182,24 @@ Untuk perubahan besar, buat implementation plan.
 
 Jangan mengganti requirement berdasarkan preferensi AI Builder.
 
-Contoh:
+Untuk membership, **jangan gunakan angka lama sebagai current requirement**. Current membership adalah:
 
 ```text
-Starter = Rp10.000
-Pro     = Rp75.000
-Power   = Rp150.000
+Starter = Rp30.000
+Growth  = Rp90.000
+Creator = Rp270.000
 ```
 
-Tidak boleh diubah tanpa keputusan user.
+Detail quota dan entitlement:
+
+```text
+Starter = 5 analysis/month, Limited analysis features
+Growth  = 20 analysis/month, Full analysis features
+Creator = 75 analysis/month, Full analysis features,
+          BYOK after Admin AI Pool quota is exhausted
+```
+
+Sumber detail: `docs/06_CURRENT_MEMBERSHIP_PLANS.md` dan Decision 030.
 
 Jika requirement tidak diketahui:
 
@@ -465,38 +475,33 @@ Usage Metering
 Cost Tracking
 ```
 
-### Starter — Rp10.000
+### Current Membership Policy
 
 ```text
+Starter — Rp30.000/month
 Admin AI Pool
-10 analysis/month
-Limited models
+5 analysis/month
+Limited analysis features
+No BYOK entitlement
+
+Growth — Rp90.000/month
+Admin AI Pool
+20 analysis/month
+Full analysis features
+No BYOK entitlement defined by current membership decision
+
+Creator — Rp270.000/month
+Admin AI Pool
+75 analysis/month
+Full analysis features
+BYOK available after Admin AI Pool quota is exhausted
 ```
 
-### Pro — Rp75.000
-
-```text
-Larger Admin AI Pool
-BYOK 1 API
-More analysis
-Better models
-Priority processing
-```
-
-### Power — Rp150.000
-
-```text
-Larger Admin AI Pool
-BYOK pool
-Multiple providers
-Custom API
-Custom Base URL
-Advanced routing
-```
+Detail current membership harus mengikuti `docs/06_CURRENT_MEMBERSHIP_PLANS.md` dan Decision 030.
 
 Tidak ada public Free Plan.
 
-Admin dapat membuat complimentary member secara manual.
+Admin dapat membuat complimentary member secara manual dengan entitlement khusus.
 
 ---
 
@@ -932,7 +937,7 @@ READ:
 1. Project Concept
 2. AI Content Intelligence Specification
 3. AI Provider / BYOK / Pool Specification
-4. Product Business Specification
+4. Current Membership Plans
 5. This Development Workflow
 6. Existing Checklist
 7. Decision Log
