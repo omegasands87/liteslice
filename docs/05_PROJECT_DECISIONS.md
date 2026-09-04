@@ -383,6 +383,47 @@ Jangan menghapus keputusan lama tanpa alasan dan persetujuan.
 
 **Important:** Keputusan ini tidak mengubah keputusan No Public Free Plan atau aturan complimentary member kecuali dinyatakan secara eksplisit dalam keputusan baru.
 
+## Decision 031 — Product Sitemap, Analysis Workspace, and Navigation
+
+**Decision:** Struktur halaman dan fungsi utama Liteslice didokumentasikan dalam `docs/08_PRODUCT_SITEMAP_AND_INFORMATION_ARCHITECTURE.md`.
+
+Untuk Member Area, **Create New Analysis** harus berbentuk multi-stage analysis workspace dengan progress navigation horizontal di bagian atas workspace, tepat di bawah header.
+
+Tahapan yang digunakan:
+
+```text
+01 Source
+→ 02 Intelligence
+→ 03 Strategy
+→ 04 Production
+→ 05 Quality
+→ 06 Final
+```
+
+Progress tersebut **bukan submenu vertical di sidebar**.
+
+Source pada Stage 01 mendukung tiga mode konseptual:
+- manual idea;
+- article/video link;
+- uploaded file.
+
+Ketiga mode tersebut diarahkan ke downstream analysis pipeline yang sama setelah source ingestion/content extraction/source understanding.
+
+Content format pada initial selection hanya:
+- Carousel;
+- Short Video;
+- Long Video.
+
+Field Platform dihapus dari initial format selection, dan pilihan Both tidak digunakan pada initial selection.
+
+**Admin:** struktur Admin mencakup domain Finance untuk revenue, expenses, Profit & Loss, transactions, invoices, payments, serta AI cost reporting.
+
+**Reason:** menjaga Create New Analysis tetap sederhana, memberikan pemahaman progres yang jelas tanpa membebani sidebar, menyatukan berbagai source input ke intelligence pipeline yang sama, dan memastikan struktur admin mencakup operational serta financial management.
+
+**Impact:** information architecture, member navigation, analysis workspace UX, source ingestion flow, content format selection, admin navigation, finance reporting requirements, dan UI planning.
+
+**Implementation note:** Decision ini menetapkan product/UX direction dan information architecture. Detail teknologi extraction, file support, database schema, accounting treatment, dan route implementation belum otomatis ditetapkan.
+
 # Current Status
 
 Dokumen ini merupakan baseline keputusan project. Jika terdapat konflik antara dokumen lama dan keputusan terbaru yang telah disetujui user, keputusan terbaru menjadi acuan dan dokumen terkait harus diperbarui agar kembali konsisten.
