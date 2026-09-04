@@ -1,30 +1,68 @@
 # DOKUMEN PELENGKAP — AI PROVIDER, BYOK & API POOL
 
+> **CURRENT MEMBERSHIP AUTHORITY:** Membership pricing, quota, feature access, and public-plan BYOK entitlement are defined by `docs/06_CURRENT_MEMBERSHIP_PLANS.md` and Decision 030 in `docs/05_PROJECT_DECISIONS.md`. This document defines the AI provider architecture and must follow that membership policy. Any older Free/Starter/Pro/Power entitlement examples are historical examples only and are not current product requirements.
+
 ## 1. Tujuan Dokumen
 
-Dokumen ini melengkapi konsep project utama dengan sistem **AI Provider Management** yang lebih fleksibel.
+Dokumen ini melengkapi konsep project utama dengan sistem **AI Provider Management** yang fleksibel.
 
 Project wajib mendukung tiga sumber AI:
 
 1. **Admin Pool** — API milik platform yang disediakan untuk member.
-2. **BYOK (Bring Your Own Key)** — member memasukkan API key miliknya sendiri.
-3. **Custom Provider** — member atau admin dapat menggunakan provider/API dengan Base URL yang dapat dikonfigurasi.
+2. **BYOK (Bring Your Own Key)** — member memasukkan API key miliknya sendiri sesuai entitlement membership.
+3. **Custom Provider** — provider/API dengan Base URL yang dapat dikonfigurasi sesuai policy keamanan.
 
-Sistem juga harus mendukung **lebih dari satu API key/provider secara bersamaan**, sehingga aplikasi dapat melakukan routing, load balancing, fallback, quota management, dan failover.
-
-Prinsip utama:
+Sistem mendukung lebih dari satu API key/provider secara bersamaan agar dapat melakukan routing, load balancing, fallback, quota management, dan failover.
 
 > Member tidak boleh dipaksa menggunakan satu API key global.
 
-> Admin dapat menyediakan pool API gratis dengan quota tertentu.
+> Admin dapat menyediakan Admin AI Pool dengan quota tertentu.
 
-> Member yang memiliki API sendiri dapat menggunakan BYOK.
-
-> Provider baru dapat ditambahkan tanpa harus mengubah core Analysis Engine.
+> Provider baru dapat ditambahkan tanpa mengubah core Analysis Engine.
 
 ---
 
-# 2. Model Penggunaan AI
+# 2. CURRENT MEMBERSHIP / AI SOURCE POLICY
+
+Current public plans:
+
+```text
+Starter — Rp30.000/month
+├── Admin AI Pool
+├── 5 analysis/month
+├── Limited analysis features
+└── No BYOK entitlement
+
+Growth — Rp90.000/month
+├── Admin AI Pool
+├── 20 analysis/month
+├── Full analysis features
+└── No BYOK entitlement defined by current membership decision
+
+Creator — Rp270.000/month
+├── Admin AI Pool
+├── 75 analysis/month
+├── Full analysis features
+└── BYOK after Admin AI Pool quota is exhausted
+```
+
+Tidak ada public Free Plan.
+
+Untuk membership publik, routing sumber AI adalah:
+
+```text
+Starter → Admin AI Pool
+Growth  → Admin AI Pool
+Creator → Admin AI Pool
+           ↓ quota exhausted
+           BYOK may be used
+```
+
+Complimentary member tetap dapat dibuat Admin secara manual dengan entitlement khusus.
+
+---
+
+# 3. MODEL PENGGUNAAN AI
 
 Sistem memiliki tiga mode.
 
@@ -33,7 +71,7 @@ MODE 1
 ADMIN POOL
 Platform menyediakan API
         ↓
-Member menggunakan quota gratis
+Member menggunakan membership quota
 ```
 
 ```text
@@ -45,6 +83,8 @@ Analysis Engine menggunakan API member
         ↓
 Tidak mengurangi quota Admin Pool
 ```
+
+Untuk current public plans, BYOK hanya tersedia bagi Creator setelah quota Admin AI Pool habis. Policy Admin/complimentary dapat memberikan entitlement berbeda secara eksplisit.
 
 ```text
 MODE 3
@@ -58,35 +98,31 @@ Model
 Analysis Engine
 ```
 
-Ketiga mode harus dapat hidup berdampingan.
+Ketiga mode dapat hidup berdampingan.
 
 ---
 
-# 3. Prioritas Sumber API
+# 4. PRIORITAS SUMBER API
 
-Sistem harus mempunyai policy routing yang jelas.
-
-Default:
+Default untuk current public membership:
 
 ```text
-Member BYOK
+Admin AI Pool
       ↓
-Jika tersedia dan aktif
+Check member quota
       ↓
-Gunakan BYOK
+Use Admin Pool
 
-Jika BYOK tidak tersedia:
+Creator + Admin Pool quota exhausted
       ↓
-Gunakan Admin Pool
+Check BYOK entitlement
       ↓
-Pilih API yang tersedia
-      ↓
-Consume quota member
+Use Member BYOK if configured and active
 ```
 
-Namun Admin harus dapat mengubah policy.
+Admin tetap dapat mengatur routing policy untuk entitlement yang memang diberikan.
 
-Contoh:
+Contoh policy:
 
 ```text
 [ ] BYOK First
@@ -95,25 +131,11 @@ Contoh:
 [ ] Admin Pool Only
 ```
 
-Policy juga dapat ditentukan berdasarkan fitur.
-
-Contoh:
-
-```text
-Analysis:
-    BYOK preferred
-    fallback → Admin Pool
-
-Premium Analysis:
-    BYOK required
-
-Free Analysis:
-    Admin Pool only
-```
+Policy tidak boleh digunakan untuk memberikan BYOK kepada plan yang tidak memiliki entitlement tersebut.
 
 ---
 
-# 4. ADMIN API POOL
+# 5. ADMIN API POOL
 
 Admin dapat memasang lebih dari satu API key.
 
@@ -140,82 +162,40 @@ OpenRouter
 └── Key #2
 ```
 
-Setiap API key merupakan **credential instance** yang dapat memiliki konfigurasi sendiri.
-
-Contoh:
+Setiap credential instance dapat memiliki konfigurasi sendiri:
 
 ```text
-Provider:
-OpenAI
-
-Credential Name:
-OpenAI Production #1
-
-API Key:
-**************
-
-Status:
-ACTIVE
-
-Priority:
-10
-
-Weight:
-5
-
-Daily Limit:
-1000 requests
-
-Monthly Limit:
-20000 requests
-
-Models:
-model-a
-model-b
-
-Enabled:
-YES
+Provider
+Credential Name
+API Key / Secret
+Status
+Priority
+Weight
+Daily Limit
+Monthly Limit
+Models
+Enabled
 ```
 
 ---
 
-# 5. API POOL ROUTING
+# 6. API POOL ROUTING
 
-Jangan selalu menggunakan API key pertama.
-
-Pool harus mendukung beberapa strategi.
+Pool harus mendukung:
 
 ## Round Robin
 
 ```text
-Key 1
-↓
-Key 2
-↓
-Key 3
-↓
-Key 1
+Key 1 → Key 2 → Key 3 → Key 1
 ```
 
 ## Weighted Round Robin
 
-Contoh:
-
-```text
-Key 1 = weight 5
-Key 2 = weight 3
-Key 3 = weight 2
-```
-
-Key #1 mendapatkan lebih banyak traffic.
+Credential dengan weight lebih tinggi menerima lebih banyak traffic.
 
 ## Priority
 
-```text
-Priority 1 → Key A
-Priority 2 → Key B
-Priority 3 → Key C
-```
+Credential dengan priority lebih tinggi dipilih terlebih dahulu.
 
 ## Least Usage
 
@@ -223,17 +203,11 @@ Pilih credential dengan penggunaan paling rendah.
 
 ## Health Based
 
-Pilih credential yang:
-
-- aktif;
-- sehat;
-- tidak mencapai quota;
-- tidak mengalami error berulang;
-- model yang diminta tersedia.
+Pilih credential yang aktif, sehat, belum mencapai quota, tidak mengalami error berulang, dan memiliki model yang diminta.
 
 ---
 
-# 6. FAILOVER
+# 7. FAILOVER
 
 Jika API gagal:
 
@@ -259,22 +233,11 @@ Failure yang dapat memicu failover:
 - quota exhausted;
 - model unavailable.
 
-Jangan melakukan infinite retry.
-
-Gunakan:
-
-```text
-Maximum Attempts
-Retry Delay
-Exponential Backoff
-Circuit Breaker
-```
+Gunakan maximum attempts, retry delay, exponential backoff, dan circuit breaker. Jangan melakukan infinite retry.
 
 ---
 
-# 7. CIRCUIT BREAKER
-
-Jika sebuah API credential berkali-kali gagal:
+# 8. CIRCUIT BREAKER
 
 ```text
 ACTIVE
@@ -290,96 +253,35 @@ HEALTH CHECK
 ACTIVE
 ```
 
-Tujuannya mencegah sistem terus-menerus mengirim request ke API yang sedang bermasalah.
-
 ---
 
-# 8. QUOTA SYSTEM
+# 9. QUOTA SYSTEM
 
-Quota harus menjadi konsep terpisah dari API key.
-
-Ada dua jenis quota utama:
-
-## Member Quota
-
-Quota yang diberikan kepada member.
-
-Contoh:
+Quota terpisah dari API credential.
 
 ```text
-Free Member
-
-Analysis:
-10 analyses / month
-
-Premium Member:
-
-100 analyses / month
+Member Quota
+≠
+Provider/Credential Quota
 ```
 
-## Provider Quota
-
-Batas penggunaan sebuah API credential.
-
-Contoh:
+V1:
 
 ```text
-OpenAI Key #1
-1000 requests/day
-
-OpenAI Key #2
-500 requests/day
+1 Analysis = 1 quota unit
 ```
 
-Kedua quota tersebut harus dihitung terpisah.
-
----
-
-# 9. ADMIN FREE AI POOL
-
-Admin dapat menyediakan pool API untuk member gratis.
-
-Contoh:
+Current public membership quota:
 
 ```text
-FREE AI POOL
-
-Provider        Credential    Daily Limit
-------------------------------------------------
-OpenAI          Key #1        500 requests
-OpenAI          Key #2        500 requests
-Google          Key #1        500 requests
-Anthropic       Key #1        300 requests
+Starter = 5 analysis/month
+Growth  = 20 analysis/month
+Creator = 75 analysis/month
 ```
 
-Member tidak perlu memasukkan API key.
+Quota provider/credential dan global pool budget tetap dihitung terpisah.
 
-Sistem otomatis menggunakan pool.
-
-Namun setiap member memiliki quota sendiri.
-
-Contoh:
-
-```text
-Member A
-10 analyses/month
-
-Member B
-10 analyses/month
-
-Member C
-10 analyses/month
-```
-
-Pool digunakan bersama, tetapi quota member tetap dihitung secara individual.
-
----
-
-# 10. QUOTA SHOULD NOT BE ONLY REQUEST COUNT
-
-Untuk AI, jumlah request saja tidak selalu mencerminkan biaya.
-
-Sistem sebaiknya mendukung beberapa unit:
+Sistem sebaiknya mendukung:
 
 ```text
 Requests
@@ -390,86 +292,84 @@ Credits
 Analysis Units
 ```
 
-Untuk V1 dapat menggunakan:
+---
+
+# 10. QUOTA RESOLUTION
+
+Sebelum request:
 
 ```text
-1 Analysis = 1 quota unit
+Determine member
+        ↓
+Determine membership
+        ↓
+Determine task/capability
+        ↓
+Check membership entitlement
+        ↓
+Check Member Quota
+        ↓
+Check Provider Credential Quota
+        ↓
+Check Global Pool Budget
+        ↓
+Resolve allowed AI source
+        ↓
+Select credential
+        ↓
+Execute request
+        ↓
+Record usage
 ```
 
-Namun database harus dirancang agar nantinya dapat mendukung token/credit metering.
+Jika quota Admin AI Pool membership habis:
+
+```text
+Starter / Growth
+→ Do not call AI through Admin Pool
+→ Wait for reset or upgrade
+
+Creator
+→ Check BYOK entitlement
+→ If BYOK configured and active, use BYOK
+→ Otherwise wait for reset or upgrade/other entitled access
+```
 
 ---
 
-# 11. CREDIT SYSTEM
+# 11. ADMIN AI POOL BUDGET
 
-Opsional tetapi disarankan.
-
-Contoh:
+Admin dapat menetapkan:
 
 ```text
-Free Member
-100 credits
-
-Premium Member
-1,000 credits
+Daily Pool Budget
+Monthly Pool Budget
+Per Member Budget
+Per Provider Budget
+Per Credential Budget
 ```
 
-Contoh penggunaan:
-
-```text
-Basic Analysis
-10 credits
-
-Professional Class
-30 credits
-
-Image Analysis
-15 credits
-
-Video Analysis
-30 credits
-```
-
-Harga credit harus dapat dikonfigurasi Admin.
+Cost tracking harus tetap dilakukan walaupun quota member masih tersedia.
 
 ---
 
 # 12. BYOK — BRING YOUR OWN KEY
 
-Member dapat memasukkan API credential sendiri.
+BYOK adalah credential milik member.
 
-Contoh:
-
-```text
-MY AI PROVIDERS
-
-OpenAI
-API Key: **************
-Status: Connected
-
-Anthropic
-API Key: **************
-Status: Connected
-
-Google Gemini
-API Key: **************
-Status: Connected
-```
-
-Member dapat memiliki beberapa provider sekaligus.
-
-Contoh:
+Untuk current public plans:
 
 ```text
-Member BYOK Pool
-
-OpenAI #1
-Anthropic #1
-Google #1
-OpenRouter #1
+Starter → No BYOK
+Growth  → No BYOK
+Creator → BYOK after Admin Pool quota exhausted
 ```
 
-Sistem dapat menggunakan routing yang sama seperti Admin Pool.
+Creator menggunakan BYOK sebagai mekanisme lanjutan setelah quota Admin AI Pool habis.
+
+Penggunaan API provider melalui BYOK menjadi tanggung jawab pemilik API credential.
+
+Jumlah credential/provider BYOK untuk Creator **belum ditetapkan oleh keputusan membership terbaru**. Jangan mengasumsikan batas atau pool size baru tanpa keputusan product tambahan.
 
 ---
 
@@ -479,55 +379,37 @@ API key milik member merupakan credential sensitif.
 
 Aturan:
 
-- Jangan dikirim kembali dalam bentuk plaintext setelah disimpan.
-- Jangan tampilkan API key penuh.
-- Masking di UI.
-- Simpan secara encrypted/secure secret storage.
-- Jangan log API key.
-- Jangan masukkan API key ke analytics.
-- Jangan expose API key ke browser jika request dapat dilakukan server-side.
-- Hapus credential ketika member meminta penghapusan.
-- Audit perubahan credential.
-
-Contoh tampilan:
-
-```text
-OpenAI
-
-sk-••••••••••••••••7X9A
-
-Connected
-[Remove]
-[Test Connection]
-```
+- jangan dikirim kembali plaintext setelah disimpan;
+- masking di UI;
+- encrypted/secure secret storage;
+- jangan log API key;
+- jangan masukkan API key ke analytics;
+- jangan expose API key ke browser jika request dapat dilakukan server-side;
+- hapus credential ketika diminta member;
+- audit perubahan credential.
 
 ---
 
 # 14. BYOK OWNERSHIP
-
-Credential harus memiliki owner.
 
 ```text
 ADMIN
     └── Admin Pool Credential
 
 MEMBER A
-    ├── BYOK Credential #1
-    └── BYOK Credential #2
+    └── BYOK Credential(s)
 
 MEMBER B
-    └── BYOK Credential #1
+    └── BYOK Credential(s)
 ```
 
-Credential Member A tidak boleh digunakan Member B.
+Credential milik satu member tidak boleh digunakan member lain.
 
 ---
 
 # 15. PROVIDER REGISTRY
 
-Sistem harus memiliki registry provider.
-
-Minimal siapkan adapter untuk provider besar yang relevan dengan use case project, misalnya:
+Arsitektur dipersiapkan untuk provider besar yang relevan, misalnya:
 
 ```text
 OpenAI
@@ -540,99 +422,69 @@ DeepSeek
 xAI
 ```
 
-Daftar ini adalah provider yang dipersiapkan oleh arsitektur, bukan berarti semua provider wajib diaktifkan sejak hari pertama.
+Daftar tersebut adalah provider yang dipersiapkan arsitektur, bukan kewajiban mengaktifkan semuanya pada hari pertama.
 
-Admin dapat:
+Admin dapat enable, disable, configure, test, set priority.
 
-```text
-Enable
-Disable
-Configure
-Test
-Set Priority
-```
-
-Provider-specific capabilities juga harus disimpan.
-
-Contoh:
+Provider/model capability dapat mencakup:
 
 ```text
-Provider
-Model
 Text
 Vision
 Image Input
 Structured Output
 Streaming
 Tool Calling
+Image Generation
+Video Generation
 ```
 
 ---
 
 # 16. CUSTOM PROVIDER
 
-Ini adalah requirement penting.
+Admin atau member hanya dapat menggunakan custom provider jika entitlement dan policy mengizinkannya.
 
-Admin atau member harus dapat menambahkan provider custom.
-
-Contoh:
+Konfigurasi:
 
 ```text
-Provider Name:
-My Custom AI
-
-Base URL:
-https://api.example.com/v1
-
-Authentication:
-Bearer Token
-
-API Key:
-**************
-
-Model:
-my-model
-
-Chat Endpoint:
- /chat/completions
+Provider Name
+Base URL
+Authentication
+API Key / Secret
+Model
+Headers
+Endpoint Mapping
 ```
 
-Jika provider kompatibel dengan OpenAI API, sistem sebaiknya dapat langsung menggunakannya melalui adapter OpenAI-compatible.
+Jika OpenAI-compatible, gunakan Generic OpenAI-Compatible Adapter.
 
 ---
 
 # 17. CUSTOM BASE URL
 
-Base URL harus configurable.
+Base URL configurable tetapi wajib diproses melalui backend dengan SSRF protection.
 
-Contoh:
-
-```text
-https://api.openai.com/v1
-https://openrouter.ai/api/v1
-https://api.groq.com/openai/v1
-https://custom.example.com/v1
-```
-
-Jangan hard-code Base URL di Analysis Engine.
-
-Gunakan:
+Minimal:
 
 ```text
-Provider Configuration
-        ↓
-Base URL
-        ↓
-Adapter
-        ↓
-AI Client
+HTTPS required
+Public hostname required
+Private IP blocked
+Loopback blocked
+Localhost blocked
+Metadata endpoint blocked
+Redirect validation
+DNS/IP validation
+Timeout
+Response size limit
 ```
 
 ---
 
 # 18. CUSTOM AUTHENTICATION
 
-Custom provider harus mendukung beberapa bentuk authentication jika dibutuhkan:
+Dukungan konseptual:
 
 ```text
 Bearer Token
@@ -643,20 +495,11 @@ Custom Header
 No Auth
 ```
 
-Untuk custom headers:
-
-```text
-Header Name
-Header Value
-```
-
 Sensitive values harus disimpan sebagai secret.
 
 ---
 
 # 19. CUSTOM ENDPOINT MAPPING
-
-Jangan mengasumsikan semua provider menggunakan endpoint yang sama.
 
 Provider configuration dapat memiliki:
 
@@ -669,38 +512,18 @@ Image Endpoint
 Video Endpoint
 ```
 
-Namun V1 hanya perlu mengimplementasikan endpoint yang benar-benar digunakan.
-
-Untuk core analysis, minimal:
-
-```text
-Chat / Generation Endpoint
-```
+Untuk V1 core analysis minimal membutuhkan Chat/Generation Endpoint.
 
 ---
 
 # 20. MODEL REGISTRY
 
-Model harus dipisahkan dari provider.
-
-Contoh:
+Model dipisahkan dari provider.
 
 ```text
 Provider
     ↓
 Model
-
-OpenAI
-    ├── Model A
-    └── Model B
-
-Anthropic
-    ├── Model A
-    └── Model B
-
-Google
-    ├── Model A
-    └── Model B
 ```
 
 Admin dapat mengatur:
@@ -716,88 +539,38 @@ Enabled
 Priority
 ```
 
-Harga/token bersifat configurable karena dapat berubah.
+Harga/token bersifat configurable.
 
 ---
 
-# 21. MODEL ROUTING
+# 21. MODEL & TASK ROUTING
 
-Analysis Engine sebaiknya tidak bergantung pada satu model.
+Analysis Engine tidak boleh bergantung pada satu model.
 
-Contoh policy:
-
-```text
-Professional Analysis
-
-Primary:
-Model A
-
-Fallback:
-Model B
-
-Fallback:
-Model C
-```
-
-Atau:
+Task dapat mencakup:
 
 ```text
-Image Analysis:
-Vision-capable model
-
-Video Analysis:
-Multimodal-capable model
-
-General Analysis:
-Text model
-```
-
----
-
-# 22. TASK-BASED ROUTING
-
-AI Service harus memahami jenis task.
-
-Contoh:
-
-```text
-TASK: TOPIC_ANALYSIS
-TASK: VIRAL_ANALYSIS
-TASK: IMAGE_ANALYSIS
-TASK: VIDEO_ANALYSIS
-TASK: SCRIPT_GENERATION
-TASK: SCENE_GENERATION
-TASK: QUALITY_CONTROL
-```
-
-Setiap task dapat mempunyai model preference.
-
-Contoh:
-
-```text
+TOPIC_ANALYSIS
+VIRAL_ANALYSIS
 IMAGE_ANALYSIS
-    ↓
-Vision Model
-
+VIDEO_ANALYSIS
 SCRIPT_GENERATION
-    ↓
-High-quality reasoning model
-
+SCENE_GENERATION
 QUALITY_CONTROL
-    ↓
-High-quality reasoning model
 ```
+
+Setiap task dapat memiliki model preference dan fallback berdasarkan capability.
 
 ---
 
-# 23. AI REQUEST ROUTER
-
-Arsitektur:
+# 22. AI REQUEST ROUTER
 
 ```text
 Analysis Request
         ↓
 Quota Service
+        ↓
+Entitlement Check
         ↓
 Credential Resolver
         ↓
@@ -820,20 +593,20 @@ Analysis Result
 
 ---
 
-# 24. CREDENTIAL RESOLUTION
+# 23. CREDENTIAL RESOLUTION
 
-Urutan:
+Urutan konseptual:
 
 ```text
 1. Determine member
 2. Determine membership
 3. Determine task
 4. Determine requested model/capability
-5. Check BYOK policy
-6. Check member BYOK credentials
+5. Check membership BYOK entitlement
+6. Check member BYOK credentials if entitled
 7. Check Admin Pool
 8. Check provider health
-9. Check quota
+9. Check quota/budget
 10. Select credential
 11. Execute request
 12. Record usage
@@ -841,110 +614,7 @@ Urutan:
 
 ---
 
-# 25. QUOTA RESOLUTION
-
-Sebelum request:
-
-```text
-Check Member Quota
-        ↓
-Check Provider Credential Quota
-        ↓
-Check Global Pool Quota
-        ↓
-Allow / Reject
-```
-
-Jika quota member habis:
-
-```text
-DO NOT CALL AI
-```
-
-Tampilkan:
-
-```text
-Your analysis quota has been exhausted.
-
-Options:
-- Wait until quota resets
-- Upgrade membership
-- Connect your own API key
-```
-
-Jika BYOK tersedia dan policy mengizinkan:
-
-```text
-Quota Admin Pool exhausted
-        ↓
-Use Member BYOK
-```
-
----
-
-# 26. FREE POOL POLICY
-
-Admin dapat menentukan:
-
-```text
-Free Pool Enabled: YES
-
-Quota Per Member:
-10 analyses/month
-
-Reset:
-Monthly
-
-Allowed Tasks:
-- Topic Analysis
-- Viral Analysis
-- Script Generation
-
-Blocked:
-- High-cost tasks
-```
-
-Admin juga dapat menentukan maximum cost.
-
-Contoh:
-
-```text
-Maximum Pool Cost Per Member:
-$1/month
-```
-
-Jika cost estimation tersedia, router dapat mencegah penggunaan model yang terlalu mahal.
-
----
-
-# 27. POOL BUDGET
-
-Admin dapat menetapkan budget:
-
-```text
-Daily Pool Budget
-Monthly Pool Budget
-Per Member Budget
-Per Provider Budget
-Per Credential Budget
-```
-
-Contoh:
-
-```text
-Global Monthly AI Budget:
-$100
-
-Member Maximum:
-$1
-
-Provider Maximum:
-$50
-```
-
----
-
-# 28. COST TRACKING
+# 24. COST TRACKING
 
 Setiap AI request sebaiknya mencatat:
 
@@ -959,88 +629,39 @@ input_tokens
 output_tokens
 total_tokens
 estimated_cost
-actual_cost (if available)
+actual_cost
 latency
 status
 error_code
 created_at
 ```
 
-Ini penting agar Admin dapat mengetahui biaya sebenarnya dari Free AI Pool.
-
 ---
 
-# 29. ADMIN AI DASHBOARD
+# 25. ADMIN AI DASHBOARD
 
-Admin dashboard harus memperlihatkan:
+Admin dashboard harus dapat memperlihatkan:
 
 ```text
 AI PROVIDERS
-Active Providers
-
 API POOL
-Total Credentials
-Healthy
-Degraded
-Failed
-
+Credentials
+Health
 USAGE
-Requests Today
-Requests This Month
-Tokens Used
+Requests
+Tokens
 Estimated Cost
-
-FREE POOL
-Active Members
-Credits Consumed
-Budget Used
-
+POOL BUDGET
 ERRORS
-Rate Limits
-Provider Errors
-Credential Errors
 ```
 
 ---
 
-# 30. CREDENTIAL MANAGEMENT UI
+# 26. MEMBER BYOK UI
+
+BYOK UI hanya ditampilkan jika entitlement member mengizinkannya.
 
 Contoh:
-
-```text
-AI PROVIDERS
-
-Provider       Status    Credentials    Usage
-------------------------------------------------
-OpenAI         Active       3            42%
-Anthropic      Active       2            31%
-Google         Active       2            18%
-OpenRouter     Active       1             9%
-```
-
-Klik provider:
-
-```text
-OpenAI
-
-Credential #1
-Status: Healthy
-Priority: 1
-Weight: 5
-Usage: 38%
-[Edit] [Test] [Disable]
-
-Credential #2
-Status: Healthy
-Priority: 2
-Weight: 3
-Usage: 21%
-[Edit] [Test] [Disable]
-```
-
----
-
-# 31. MEMBER BYOK UI
 
 ```text
 MY AI API
@@ -1056,63 +677,39 @@ API Key:
 Model:
 [Auto Detect / Select]
 
-Usage Policy:
-[Use for my analyses]
-
 [Save & Test]
 ```
 
-Setelah tersimpan:
-
-```text
-OpenAI
-Connected
-Last tested: ...
-[Use as Primary]
-[Disable]
-[Remove]
-```
+Untuk Creator, UI harus menjelaskan bahwa BYOK menjadi opsi setelah quota Admin AI Pool habis.
 
 ---
 
-# 32. BYOK VS ADMIN POOL
-
-UI harus menjelaskan dengan jelas:
+# 27. BYOK VS ADMIN POOL
 
 ```text
 ADMIN POOL
-
 Provided by the platform.
-Uses your membership quota.
+Uses membership quota.
 
 BYOK
-
-Uses your own API account and billing.
+Uses member's own API account and billing.
 Does not consume Admin Pool quota.
 ```
 
-Jika BYOK digunakan, biaya API provider menjadi tanggung jawab pemilik API key.
-
 ---
 
-# 33. API TEST CONNECTION
+# 28. API TEST CONNECTION
 
-Setiap credential harus memiliki:
+Setiap credential harus memiliki test connection yang aman dan murah.
 
-```text
-Test Connection
-```
-
-Test harus melakukan request minimal yang aman dan murah.
-
-Hasil:
+Hasil dapat mencakup:
 
 ```text
 CONNECTED
 Provider reachable
 Credential valid
 Model available
-Latency: 820ms
+Latency
 ```
 
 atau:
@@ -1122,13 +719,13 @@ FAILED
 Invalid API key
 ```
 
-Jangan menampilkan credential dalam error log.
+Credential tidak boleh muncul dalam error log.
 
 ---
 
-# 34. RATE LIMIT HANDLING
+# 29. RATE LIMIT HANDLING
 
-Sistem harus membedakan:
+Bedakan:
 
 ```text
 429 Rate Limit
@@ -1141,63 +738,36 @@ Sistem harus membedakan:
 Network Error
 ```
 
-Routing behavior harus berbeda.
-
-Contoh:
+Contoh behavior:
 
 ```text
-401
-→ Disable credential / require revalidation
-
-429
-→ Temporarily deprioritize credential
-→ Try another credential
-
-5xx
-→ Retry with backoff
-→ Then failover
-
-404 Model
-→ Try another compatible model
+401 → disable/revalidate credential
+429 → deprioritize and try another credential
+5xx → retry with backoff, then failover
+404 → try compatible model if available
 ```
 
 ---
 
-# 35. IDEMPOTENCY
+# 30. IDEMPOTENCY & AUDIT
 
-AI request yang gagal setelah provider menerima request harus ditangani hati-hati.
+Gunakan request ID dan idempotency key jika provider mendukung.
 
-Gunakan:
+Admin audit log minimal mencatat:
 
 ```text
-request_id
-idempotency key where supported
+credential added/changed/disabled
+provider disabled
+quota changed
+routing policy changed
+pool budget changed
 ```
-
-Tujuannya mencegah duplicate processing jika retry terjadi.
 
 ---
 
-# 36. AUDIT LOG
+# 31. DATABASE EXTENSION
 
-Admin harus dapat mengetahui:
-
-```text
-Who added credential
-Who changed credential
-Who disabled provider
-Who changed quota
-Who changed routing policy
-Who changed pool budget
-```
-
-Member dapat melihat aktivitas credential miliknya sendiri secara terbatas.
-
----
-
-# 37. DATABASE EXTENSION
-
-Tambahkan entitas:
+Minimal:
 
 ```text
 ai_providers
@@ -1217,61 +787,18 @@ Untuk BYOK:
 user_ai_credentials
 ```
 
-Jika ingin satu tabel credential generik:
+Credential dapat dimodelkan generik dengan ownership:
 
 ```text
-ai_credentials
-    owner_type
-    owner_id
-    provider_id
-    credential_type
-```
-
----
-
-# 38. RECOMMENDED CREDENTIAL MODEL
-
-Konsep:
-
-```text
-AI Provider
-    ↓
-AI Credential
-    ↓
-AI Model
-```
-
-Credential memiliki:
-
-```text
-id
 owner_type
 owner_id
 provider_id
-name
-encrypted_secret
-base_url
-auth_type
-headers
-status
-priority
-weight
-daily_limit
-monthly_limit
-current_usage
-last_error
-last_success
-created_at
-updated_at
+credential_type
 ```
-
-Jangan menyimpan secret plaintext jika secure/encrypted storage tersedia.
 
 ---
 
-# 39. PROVIDER ADAPTER INTERFACE
-
-Gunakan interface konseptual:
+# 32. PROVIDER ADAPTER INTERFACE
 
 ```text
 AIProviderAdapter
@@ -1285,69 +812,13 @@ normalizeError()
 healthCheck()
 ```
 
-Setiap provider mempunyai adapter.
-
-```text
-OpenAIAdapter
-AnthropicAdapter
-GoogleAdapter
-OpenRouterAdapter
-GenericOpenAICompatibleAdapter
-CustomAdapter
-```
+Provider-specific adapter dan Generic OpenAI-Compatible Adapter harus dapat digunakan tanpa mengikat Analysis Engine ke provider tertentu.
 
 ---
 
-# 40. GENERIC OPENAI-COMPATIBLE PROVIDER
+# 33. MULTIMODAL SUPPORT
 
-Ini sangat penting untuk mengurangi pekerjaan implementasi.
-
-Jika provider mengikuti format API OpenAI-compatible:
-
-```text
-Custom Provider
-        ↓
-Generic OpenAI-Compatible Adapter
-```
-
-Admin cukup mengisi:
-
-```text
-Name
-Base URL
-API Key
-Model
-```
-
-Jika provider memerlukan format khusus, gunakan custom adapter.
-
----
-
-# 41. PROVIDER CAPABILITY MATRIX
-
-Sistem harus mengetahui kemampuan provider/model.
-
-Contoh:
-
-| Capability | Provider/Model |
-|---|---|
-| Text | YES/NO |
-| Vision | YES/NO |
-| Structured Output | YES/NO |
-| Streaming | YES/NO |
-| Tool Calling | YES/NO |
-| Image Generation | YES/NO |
-| Video Generation | YES/NO |
-
-Analysis Engine tidak boleh meminta capability yang tidak tersedia.
-
----
-
-# 42. MULTIMODAL SUPPORT
-
-Karena project menghasilkan konten gambar dan video, arsitektur harus siap untuk model multimodal.
-
-Contoh task:
+Arsitektur harus siap untuk:
 
 ```text
 Analyze Reference Image
@@ -1356,58 +827,33 @@ Analyze Existing Video Metadata
 Analyze Visual Concept
 ```
 
-Namun jangan mengaktifkan fitur yang belum diperlukan.
-
-Arsitektur cukup disiapkan agar dapat ditambahkan.
+Namun fitur yang belum diperlukan tidak perlu diaktifkan.
 
 ---
 
-# 43. FALLBACK MATRIX
+# 34. FALLBACK MATRIX
 
-Contoh:
-
-```text
-TASK: IMAGE_ANALYSIS
-
-Primary:
-Vision Model A
-
-Fallback:
-Vision Model B
-
-Fallback:
-Vision Model C
-```
-
-Untuk video:
+Fallback dipilih berdasarkan task dan capability.
 
 ```text
-TASK: VIDEO_ANALYSIS
+IMAGE_ANALYSIS
+Primary → Vision Model A
+Fallback → Vision Model B
 
-Primary:
-Multimodal Model A
+VIDEO_ANALYSIS
+Primary → Multimodal Model A
+Fallback → Multimodal Model B
 
-Fallback:
-Multimodal Model B
-```
-
-Untuk script:
-
-```text
-TASK: SCRIPT_GENERATION
-
-Primary:
-Reasoning Model A
-
-Fallback:
-Reasoning Model B
+SCRIPT_GENERATION
+Primary → Reasoning Model A
+Fallback → Reasoning Model B
 ```
 
 ---
 
-# 44. DO NOT MIX PAYMENT API POOL WITH AI API POOL
+# 35. PAYMENT SEPARATION
 
-AI credentials dan payment credentials adalah dua sistem berbeda.
+AI credentials dan payment credentials adalah dua domain berbeda.
 
 ```text
 AI Credential Management
@@ -1419,15 +865,13 @@ Payment Credential Management
 Xendit / NOWPayments / Manual Transfer
 ```
 
-Jangan menggunakan satu generic credential system yang membuat domain menjadi ambigu.
-
-Secure secret infrastructure boleh digunakan bersama, tetapi domain/service layer tetap terpisah.
+Secure secret infrastructure boleh digunakan bersama, tetapi service layer tetap terpisah.
 
 ---
 
-# 45. ADMIN OVERRIDE
+# 36. ADMIN OVERRIDE
 
-Admin harus dapat mengatur:
+Admin dapat mengatur:
 
 ```text
 Force Provider
@@ -1441,153 +885,79 @@ Set Budget
 Set Fallback
 ```
 
+Admin override tidak boleh melanggar security policy atau memberikan public-plan entitlement yang belum diputuskan.
+
+---
+
+# 37. MEMBER POLICY
+
+Admin dapat menentukan entitlement khusus untuk complimentary member.
+
+Untuk public plans:
+
+```text
+Starter → Admin Pool only
+Growth  → Admin Pool only
+Creator → Admin Pool, then BYOK after quota exhausted
+```
+
+Custom provider dan advanced credential capabilities hanya boleh tersedia jika entitlement/policy mengizinkannya.
+
+---
+
+# 38. OBSERVABILITY
+
+Admin perlu mengetahui alasan routing:
+
+```text
+Task
+Member
+Selected Provider
+Credential
+Model
+Reason
+Fallback
+Latency
+Tokens
+Cost
+Status
+```
+
+Credential secret tidak boleh muncul dalam observability output.
+
+---
+
+# 39. USER EXPERIENCE
+
+Member yang memakai Admin Pool tidak perlu mengetahui kompleksitas routing.
+
 Contoh:
-
-```text
-Emergency Mode
-
-Provider:
-OpenAI
-
-Force Model:
-Model X
-
-Fallback:
-Disabled
-```
-
-Ini berguna ketika provider tertentu bermasalah.
-
----
-
-# 46. MEMBER POLICY
-
-Admin dapat menentukan apakah member boleh:
-
-```text
-[YES] Use BYOK
-[YES] Add multiple BYOK providers
-[YES] Add custom provider
-[NO] Override platform security settings
-```
-
-Custom provider dapat dinonaktifkan jika dianggap terlalu berisiko.
-
----
-
-# 47. CUSTOM PROVIDER SECURITY
-
-Custom Base URL merupakan attack surface.
-
-Sistem harus mencegah:
-
-- SSRF;
-- akses localhost;
-- private IP;
-- internal network;
-- cloud metadata endpoints;
-- arbitrary internal ports;
-- malicious redirects.
-
-Base URL harus divalidasi.
-
-Jika custom provider hanya boleh berupa public HTTPS endpoint, enforce:
-
-```text
-HTTPS required
-Public hostname required
-Private IP blocked
-Loopback blocked
-Localhost blocked
-Metadata endpoint blocked
-```
-
-Admin dapat memiliki policy berbeda jika memang membutuhkan private infrastructure.
-
----
-
-# 48. OBSERVABILITY
-
-Admin perlu mengetahui alasan routing.
-
-Contoh request log:
-
-```text
-Request #ABC123
-
-Task:
-SCRIPT_GENERATION
-
-User:
-Member #102
-
-Selected Provider:
-Anthropic
-
-Credential:
-Pool #3
-
-Model:
-Model X
-
-Reason:
-Primary credential healthy
-Quota available
-Highest priority
-
-Fallback:
-Not used
-
-Latency:
-2.4s
-
-Tokens:
-...
-Cost:
-...
-```
-
-Ini membuat sistem dapat diaudit dan diperbaiki.
-
----
-
-# 49. USER EXPERIENCE
-
-Member tidak perlu mengetahui kompleksitas routing jika menggunakan Admin Pool.
-
-UI cukup:
 
 ```text
 AI Access
 
 ● Platform AI
-   7 / 10 analyses remaining
-
-○ My API Key
-   Connected
+   4 / 5 analyses remaining
 ```
 
-Jika BYOK aktif:
+Untuk Creator setelah quota habis:
 
 ```text
-Using:
-My OpenAI API
-
-Platform quota:
-Untouched
+Platform quota exhausted.
+Connect your own API to continue with BYOK.
 ```
 
 ---
 
-# 50. CORE ARCHITECTURE
-
-Arsitektur akhir:
+# 40. CORE ARCHITECTURE
 
 ```text
                     ANALYSIS REQUEST
                            │
                            ▼
                     QUOTA SERVICE
+                           │
+                     ENTITLEMENT
                            │
                            ▼
                  CREDENTIAL RESOLVER
@@ -1619,18 +989,14 @@ Arsitektur akhir:
                     ANALYSIS ENGINE
                            │
                            ▼
-                  PROFESSIONAL CLASS
+                  PROFESSIONAL BLUEPRINT
 ```
 
 ---
 
-# 51. V1 PRIORITY
+# 41. V1 PRIORITY
 
-Untuk V1, implementasi tidak harus langsung mengaktifkan semua provider.
-
-Prioritas:
-
-### Tier 1
+Tier 1:
 
 ```text
 Admin Pool
@@ -1641,7 +1007,7 @@ Failover
 Generic OpenAI-Compatible Provider
 ```
 
-### Tier 2
+Tier 2:
 
 ```text
 Provider Registry
@@ -1651,7 +1017,7 @@ Weighted Routing
 Health Monitoring
 ```
 
-### Tier 3
+Tier 3:
 
 ```text
 Advanced Cost Optimization
@@ -1660,9 +1026,11 @@ Advanced Budgeting
 Dynamic Routing
 ```
 
+Implementasi harus tetap tunduk pada membership entitlement terbaru.
+
 ---
 
-# 52. DEFINITION OF DONE — AI PROVIDER SYSTEM
+# 42. DEFINITION OF DONE — AI PROVIDER SYSTEM
 
 Sistem dianggap selesai jika:
 
@@ -1675,40 +1043,36 @@ Sistem dianggap selesai jika:
 7. Sistem dapat menangani rate limit.
 8. Sistem dapat menghitung quota member.
 9. Sistem dapat menghitung penggunaan credential.
-10. Admin dapat menyediakan Free AI Pool.
-11. Free AI Pool memiliki quota per member.
-12. Free AI Pool memiliki budget.
-13. Member dapat menggunakan BYOK.
-14. Member dapat memiliki lebih dari satu BYOK.
-15. BYOK tidak mengurangi Admin Pool quota.
-16. Member dapat memilih BYOK sebagai primary jika diizinkan.
-17. Admin dapat menentukan routing policy.
-18. Sistem mendukung provider registry.
-19. Sistem mendukung model registry.
-20. Sistem mendukung custom Base URL.
-21. Sistem mendukung custom authentication.
-22. Sistem memiliki generic OpenAI-compatible adapter.
-23. Credential disimpan secara aman.
-24. Credential tidak pernah masuk client-side response.
-25. Credential tidak pernah masuk log.
-26. Custom Base URL memiliki SSRF protection.
-27. AI usage dicatat.
-28. Error provider dicatat.
-29. Health status credential dapat diketahui.
-30. Admin dapat melihat penggunaan dan estimasi biaya.
-31. Core Analysis Engine tidak bergantung pada provider tertentu.
+10. Admin dapat menyediakan Admin AI Pool.
+11. Admin AI Pool memiliki quota per member.
+12. Admin AI Pool memiliki budget.
+13. Creator dapat menggunakan BYOK setelah quota Admin Pool habis.
+14. BYOK tidak mengurangi Admin Pool quota.
+15. Multiple providers didukung secara arsitektural.
+16. Provider registry didukung.
+17. Model registry didukung.
+18. Custom Base URL didukung dengan SSRF protection.
+19. Custom authentication didukung.
+20. Generic OpenAI-compatible adapter tersedia.
+21. Credential disimpan secara aman.
+22. Credential tidak pernah masuk client-side response.
+23. Credential tidak pernah masuk log.
+24. AI usage dicatat.
+25. Error provider dicatat.
+26. Health status credential dapat diketahui.
+27. Admin dapat melihat penggunaan dan estimasi biaya.
+28. Core Analysis Engine tidak bergantung pada provider tertentu.
+29. Entitlement membership diverifikasi sebelum BYOK digunakan.
 
 ---
 
-# 53. KETENTUAN PENTING UNTUK AI BUILDER
+# 43. KETENTUAN PENTING UNTUK AI BUILDER
 
 Jangan mengimplementasikan AI integration sebagai:
 
 ```text
 Analysis → OpenAI API langsung
 ```
-
-Itu terlalu rigid.
 
 Implementasikan:
 
@@ -1726,11 +1090,7 @@ Model Router
 Provider Adapter
 ```
 
-Tujuannya agar project dapat berpindah provider tanpa mengubah Analysis Engine.
-
-Jangan membuat API pool hanya sebagai daftar API key.
-
-Pool harus mempunyai:
+API Pool harus mempunyai:
 
 - routing;
 - quota;
@@ -1742,102 +1102,25 @@ Pool harus mempunyai:
 - budget;
 - ownership.
 
-BYOK juga bukan sekadar field API key di profile.
+BYOK harus menjadi credential yang dapat dipakai oleh Credential Resolver dan hanya tersedia sesuai membership entitlement.
 
-BYOK harus menjadi credential yang dapat dipakai oleh Credential Resolver.
-
-Custom Provider bukan sekadar input Base URL.
-
-Custom Provider harus melalui:
-
-- URL validation;
-- SSRF protection;
-- authentication configuration;
-- provider adapter;
-- capability detection;
-- health check.
+Custom Provider harus melalui URL validation, SSRF protection, authentication configuration, provider adapter, capability detection, dan health check.
 
 ---
 
-# 54. HASIL YANG DIINGINKAN
-
-Dengan arsitektur ini, project dapat memiliki model bisnis:
-
-```text
-FREE MEMBER
-     ↓
-Admin AI Pool
-     ↓
-Limited quota
-```
-
-```text
-PREMIUM MEMBER
-     ↓
-Larger Admin Pool quota
-     +
-Optional BYOK
-```
-
-```text
-POWER USER
-     ↓
-BYOK
-     ↓
-Own provider/account
-     ↓
-Own provider billing
-```
-
-Dan platform dapat berkembang menjadi:
-
-```text
-                    AI PLATFORM
-                         │
-          ┌──────────────┼──────────────┐
-          │              │              │
-       ADMIN POOL       BYOK        CUSTOM API
-          │              │              │
-     Multiple Keys   Multiple Keys   Custom Base URL
-          │              │              │
-          └──────────────┼──────────────┘
-                         │
-                  PROVIDER ROUTER
-                         │
-                  MODEL ROUTER
-                         │
-                  ANALYSIS ENGINE
-                         │
-                  PROFESSIONAL CLASS
-```
-
----
-
-# 55. FINAL PRODUCT PRINCIPLE
-
-Core principle:
+# 44. FINAL PRODUCT PRINCIPLE
 
 > **The product owns the AI orchestration layer, not the AI provider.**
 
-Provider dapat berubah.
+Provider dapat berubah. API key dapat berubah. Model dapat berubah. Harga provider dapat berubah.
 
-API key dapat berubah.
-
-Model dapat berubah.
-
-Harga provider dapat berubah.
-
-Bahkan provider dapat ditambahkan atau dihapus.
-
-Tetapi:
+Yang harus tetap stabil:
 
 ```text
 Analysis Engine
-Professional Class
+Professional Content Blueprint
 Quota System
 Member Experience
 ```
 
-tetap stabil.
-
-Itulah alasan sistem **BYOK + API Pool + Provider Adapter + Model Router** harus menjadi bagian dari arsitektur sejak awal, meskipun V1 hanya mengaktifkan beberapa provider.
+Membership terbaru tidak mengubah prinsip provider abstraction. Ia hanya menentukan **siapa yang berhak menggunakan sumber AI tertentu dan kapan BYOK dapat digunakan**.
